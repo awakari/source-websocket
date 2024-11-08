@@ -70,16 +70,14 @@ spec:
               value: "{{ .Values.db.tls.insecure }}"
             - name: DB_TABLE_RETENTION
               value: "{{ .Values.db.table.retention }}"
-            - name: WEBSOCKET_TYPE
-              value: "{{ .Values.websocket.type }}"
+            - name: API_EVENTS_TYPE
+              value: "{{ .Values.api.events.type }}"
             - name: LOG_LEVEL
               value: "{{ .Values.log.level }}"
             - name: API_USER_AGENT
               value: "{{ .Values.api.userAgent }}"
             - name: API_GROUP_ID
               value: "{{ .Values.api.groupId }}"
-            - name: WEBSOCKET_STREAM_TIMEOUT
-              value: "{{ .Values.websocket.stream.timeout }}"
             - name: API_EVENTS_SOURCE
               value: "{{ .Values.api.events.source }}"
             - name: REPLICA_COUNT

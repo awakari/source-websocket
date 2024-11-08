@@ -6,10 +6,9 @@ import (
 )
 
 type Config struct {
-	Api   ApiConfig
-	Db    DbConfig
-	Event WebsocketConfig
-	Log   struct {
+	Api ApiConfig
+	Db  DbConfig
+	Log struct {
 		Level int `envconfig:"LOG_LEVEL" default:"-4" required:"true"`
 	}
 	Replica ReplicaConfig
@@ -30,6 +29,7 @@ type ApiConfig struct {
 
 type EventsConfig struct {
 	Source string `envconfig:"API_EVENTS_SOURCE" default:"https://awakari.com/pub.html?srcType=ws" required:"true"`
+	Type   string `envconfig:"API_EVENTS_TYPE" required:"true" default:"com_awakari_websocket_v1"`
 }
 
 type DbConfig struct {
@@ -46,11 +46,6 @@ type DbConfig struct {
 		Enabled  bool `envconfig:"DB_TLS_ENABLED" default:"false" required:"true"`
 		Insecure bool `envconfig:"DB_TLS_INSECURE" default:"false" required:"true"`
 	}
-}
-
-type WebsocketConfig struct {
-	StreamTimeout time.Duration `envconfig:"WEBSOCKET_STREAM_TIMEOUT" default:"15m" required:"true"`
-	Type          string        `envconfig:"WEBSOCKET_TYPE" required:"true" default:"com_awakari_websocket_v1"`
 }
 
 type ReplicaConfig struct {

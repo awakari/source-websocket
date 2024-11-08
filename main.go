@@ -8,8 +8,8 @@ import (
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service"
+	"github.com/awakari/source-websocket/service/converter"
 	"github.com/awakari/source-websocket/service/handler"
-	"github.com/awakari/source-websocket/service/interceptor"
 	"github.com/awakari/source-websocket/service/writer"
 	"github.com/awakari/source-websocket/storage/mongo"
 	"log/slog"
@@ -68,13 +68,12 @@ func main() {
 	}
 	defer stor.Close()
 
-	interceptors := []interceptor.Interceptor{
-		interceptor.NewLogging(interceptor.NewDefault(svcWriter), log, "default"),
-	}
+	conv := converter.NewService(cfg.Api.Events.Type)
+	conv = converter.NewLogging(conv, log)
 
 	handlersLock := &sync.Mutex{}
 	handlerByUrl := make(map[string]handler.Handler)
-	handlerFactory := handler.NewFactory(cfg.Api, cfg.Event, interceptors)
+	handlerFactory := handler.NewFactory(cfg.Api, conv, svcWriter)
 
 	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
 	svc = service.NewServiceLogging(svc, log)

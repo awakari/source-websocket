@@ -88,6 +88,7 @@ api:
   groupId: "default"
   events:
     source: "https://awakari.com/pub.html?srcType=ws"
+    type: "com_awakari_websocket_v1"
 db:
   # Database name to use.
   name: source
@@ -105,10 +106,6 @@ db:
   tls:
     enabled: false
     insecure: false
-websocket:
-  stream:
-    timeout: "15m"
-  type: "com_awakari_websocket_v1"
 log:
   # https://pkg.go.dev/golang.org/x/exp/slog#Level
   level: -4
