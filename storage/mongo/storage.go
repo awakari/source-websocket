@@ -22,15 +22,15 @@ type storageMongo struct {
 
 type record struct {
 	Url          string    `bson:"url"`
-	Auth         string    `bson:"auth"`
+	Req          string    `bson:"req"`
 	GroupId      string    `bson:"gid"`
 	UserId       string    `bson:"uid"`
-	ReplicaIndex uint32    `bson:"ridx"`
 	CreatedAt    time.Time `bson:"createdAt"`
+	ReplicaIndex uint32    `bson:"ridx"`
 }
 
 const attrUrl = "url"
-const attrAuth = "auth"
+const attrReq = "req"
 const attrGroupId = "gid"
 const attrUserId = "uid"
 const attrReplicaIndex = "ridx"
@@ -43,7 +43,7 @@ var optsGet = options.
 	SetProjection(projRead)
 var projRead = bson.D{
 	{
-		Key:   attrAuth,
+		Key:   attrReq,
 		Value: 1,
 	},
 	{
@@ -137,7 +137,7 @@ func (sm storageMongo) Close() error {
 func (sm storageMongo) Create(ctx context.Context, url string, str model.Stream) (err error) {
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          url,
-		Auth:         str.Auth,
+		Req:          str.Request,
 		GroupId:      str.GroupId,
 		UserId:       str.UserId,
 		ReplicaIndex: str.Replica,
@@ -159,7 +159,7 @@ func (sm storageMongo) Read(ctx context.Context, url string) (str model.Stream, 
 		err = result.Decode(&rec)
 	}
 	if err == nil {
-		str.Auth = rec.Auth
+		str.Request = rec.Req
 		str.CreatedAt = rec.CreatedAt.UTC()
 		str.GroupId = rec.GroupId
 		str.UserId = rec.UserId

@@ -49,7 +49,7 @@ type DbConfig struct {
 }
 
 type WebsocketConfig struct {
-	StreamTimeout time.Duration `envconfig:"WEBSOCKET_STREAM_TIMEOUT" default:"1m" required:"true"`
+	StreamTimeout time.Duration `envconfig:"WEBSOCKET_STREAM_TIMEOUT" default:"15m" required:"true"`
 	Type          string        `envconfig:"WEBSOCKET_TYPE" required:"true" default:"com_awakari_websocket_v1"`
 }
 

@@ -15,7 +15,7 @@ service Service {
 
 message CreateRequest {
   string url = 1;
-  string auth = 2;
+  string req = 2; // initial request, typically a json payload to subscribe
   string groupId = 3;
   string userId = 4;
 }
@@ -27,9 +27,10 @@ message ReadRequest {
 }
 
 message ReadResponse {
-  string groupId = 1;
-  string userId = 2;
-  google.protobuf.Timestamp createdAt = 3;
+  google.protobuf.Timestamp createdAt = 1;
+  string req = 2;
+  string groupId = 3;
+  string userId = 4;
 }
 
 message DeleteRequest {

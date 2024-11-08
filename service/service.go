@@ -12,7 +12,7 @@ import (
 )
 
 type Service interface {
-	Create(ctx context.Context, url, auth, groupId, userId string, at time.Time) (err error)
+	Create(ctx context.Context, url, sub, groupId, userId string, at time.Time) (err error)
 	Read(ctx context.Context, url string) (str model.Stream, err error)
 	Delete(ctx context.Context, url, groupId, userId string) (err error)
 	List(ctx context.Context, limit uint32, filter model.Filter, order model.Order, cursor string) (urls []string, err error)
@@ -46,9 +46,9 @@ func NewService(
 	}
 }
 
-func (s svc) Create(ctx context.Context, url, auth, groupId, userId string, at time.Time) (err error) {
+func (s svc) Create(ctx context.Context, url, sub, groupId, userId string, at time.Time) (err error) {
 	str := model.Stream{
-		Auth:      auth,
+		Request:   sub,
 		GroupId:   groupId,
 		UserId:    userId,
 		CreatedAt: at,

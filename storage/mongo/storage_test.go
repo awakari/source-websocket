@@ -61,7 +61,7 @@ func TestStorageMongo_Create(t *testing.T) {
 	//
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url0",
-		Auth:         "token1",
+		Req:          "token1",
 		GroupId:      "group2",
 		UserId:       "user3",
 		ReplicaIndex: 4,
@@ -71,7 +71,7 @@ func TestStorageMongo_Create(t *testing.T) {
 	//
 	cases := map[string]struct {
 		url          string
-		auth         string
+		sub          string
 		groupId      string
 		userId       string
 		replicaIndex uint32
@@ -81,7 +81,7 @@ func TestStorageMongo_Create(t *testing.T) {
 		"ok empty": {},
 		"ok": {
 			url:          "url1",
-			auth:         "token1",
+			sub:          "sub1",
 			groupId:      "group2",
 			userId:       "user3",
 			replicaIndex: 4,
@@ -96,7 +96,7 @@ func TestStorageMongo_Create(t *testing.T) {
 	for k, c := range cases {
 		t.Run(k, func(t *testing.T) {
 			err = s.Create(ctx, c.url, model.Stream{
-				Auth:      c.auth,
+				Request:   c.sub,
 				GroupId:   c.groupId,
 				UserId:    c.userId,
 				CreatedAt: c.at,
@@ -128,7 +128,7 @@ func TestStorageMongo_Read(t *testing.T) {
 	//
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url0",
-		Auth:         "token1",
+		Req:          "sub1",
 		GroupId:      "group2",
 		UserId:       "user3",
 		ReplicaIndex: 4,
@@ -144,7 +144,7 @@ func TestStorageMongo_Read(t *testing.T) {
 		"ok": {
 			url: "url0",
 			out: model.Stream{
-				Auth:      "token1",
+				Request:   "sub1",
 				GroupId:   "group2",
 				UserId:    "user3",
 				CreatedAt: time.Date(2024, 11, 4, 18, 49, 25, 0, time.UTC),
@@ -188,7 +188,7 @@ func TestStorageMongo_Delete(t *testing.T) {
 	//
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url0",
-		Auth:         "token1",
+		Req:          "token1",
 		GroupId:      "group2",
 		UserId:       "user3",
 		ReplicaIndex: 4,
@@ -197,7 +197,7 @@ func TestStorageMongo_Delete(t *testing.T) {
 	require.Nil(t, err)
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url1",
-		Auth:         "token2",
+		Req:          "token2",
 		GroupId:      "group3",
 		UserId:       "user4",
 		ReplicaIndex: 5,
@@ -258,7 +258,7 @@ func TestStorageMongo_List(t *testing.T) {
 	//
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url0",
-		Auth:         "token1",
+		Req:          "token1",
 		GroupId:      "group2",
 		UserId:       "user3",
 		ReplicaIndex: 4,
@@ -267,7 +267,7 @@ func TestStorageMongo_List(t *testing.T) {
 	require.Nil(t, err)
 	_, err = sm.coll.InsertOne(ctx, record{
 		Url:          "url1",
-		Auth:         "token2",
+		Req:          "token2",
 		GroupId:      "group3",
 		UserId:       "user4",
 		ReplicaIndex: 5,

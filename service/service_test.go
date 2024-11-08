@@ -18,7 +18,7 @@ func TestService_Create(t *testing.T) {
 	s = NewServiceLogging(s, slog.Default())
 	cases := map[string]struct {
 		url          string
-		auth         string
+		sub          string
 		groupId      string
 		userId       string
 		at           time.Time
@@ -39,7 +39,7 @@ func TestService_Create(t *testing.T) {
 	}
 	for k, c := range cases {
 		t.Run(k, func(t *testing.T) {
-			err := s.Create(context.TODO(), c.url, c.auth, c.groupId, c.userId, c.at)
+			err := s.Create(context.TODO(), c.url, c.sub, c.groupId, c.userId, c.at)
 			assert.ErrorIs(t, err, c.err)
 			assert.Equal(t, c.handlerCount, len(handlerByUrl))
 			clear(handlerByUrl)

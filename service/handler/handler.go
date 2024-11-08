@@ -2,12 +2,15 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/interceptor"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"io"
+	"net/http"
+	"time"
 )
 
 type Handler interface {
@@ -47,19 +50,27 @@ func (h *handler) Handle(ctx context.Context) {
 	for {
 		evtN, err := h.handleStream(ctx)
 		if evtN == 0 && err != nil {
-			panic(err)
+			fmt.Println(err)
+			time.Sleep(1 * time.Minute)
 		}
 	}
 }
 
 func (h *handler) handleStream(ctx context.Context) (evtN uint64, err error) {
-	h.conn, _, err = websocket.Dial(ctx, h.url, nil)
+	var resp *http.Response
+	h.conn, resp, err = websocket.Dial(ctx, h.url, nil)
 	if err == nil {
 		defer h.conn.CloseNow()
-		for {
-			err = h.handleStreamEvent(ctx, h.url)
-			if err != nil {
-				break
+		fmt.Printf("%s response: %d\n", h.url, resp.StatusCode)
+		if h.str.Request != "" {
+			err = wsjson.Write(ctx, h.conn, h.str.Request)
+		}
+		if err == nil {
+			for {
+				err = h.handleStreamEvent(ctx, h.url)
+				if err != nil {
+					break
+				}
 			}
 		}
 	}
