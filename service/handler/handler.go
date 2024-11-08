@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
@@ -64,7 +65,11 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 	if err == nil {
 		defer h.conn.CloseNow()
 		if h.str.Request != "" {
-			err = wsjson.Write(ctx, h.conn, h.str.Request)
+			var reqParsed map[string]any
+			err = json.Unmarshal([]byte(h.str.Request), &reqParsed)
+			if err == nil {
+				err = wsjson.Write(ctx, h.conn, reqParsed)
+			}
 		}
 		if err == nil {
 			for {

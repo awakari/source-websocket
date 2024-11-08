@@ -1,16 +1,3 @@
 package model
 
 const CeSpecVersion = "1.0"
-const CeKeyAction = "action"
-const CeKeyObjectUrl = "objecturl"
-const CeKeySubject = "subject"
-const CeKeyTime = "time"
-const CeKeyTitle = "title"
-const CeKeyElevation = "elevation"
-const CeKeyLocation = "location"
-const CeKeyLatitude = "latitude"
-const CeKeyLongitude = "longitude"
-const CeKeyMagnitude = "magnitude"
-const CeKeyMagnitudeType = "magnitudetype"
-const CeKeySourceCatalog = "sourcecatalog"
-const CeKeySourceId = "sourceid"

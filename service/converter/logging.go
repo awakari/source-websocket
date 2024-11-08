@@ -24,7 +24,7 @@ func (l logging) Convert(src string, raw map[string]any) (evt *pb.CloudEvent, er
 	case nil:
 		l.log.Debug(fmt.Sprintf("converter.Convert(%s): evt.Id=%s", src, evt.Id))
 	default:
-		l.log.Warn(fmt.Sprintf("converter.Convert(%s): %s", src, err))
+		l.log.Warn(fmt.Sprintf("converter.Convert(%s, %+v): %s", src, raw, err))
 	}
 	return
 }

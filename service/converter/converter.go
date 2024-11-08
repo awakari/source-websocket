@@ -23,24 +23,42 @@ type svc struct {
 type ConvertFunc func(evt *pb.CloudEvent, v any) (err error)
 
 const seismicportalEuEventDetailsHtmlUnid = "https://www.seismicportal.eu/eventdetails.html?unid="
+const typeTicker = "ticker"
 
 var convSchema = map[string]any{
-	"action": toStringFunc(model.CeKeyAction),
+	"action":        toStringFunc("action"),
+	"best_ask":      toStringFunc("bestbask"),
+	"best_ask_size": toStringFunc("bestasksize"),
+	"best_bid":      toStringFunc("bestbid"),
+	"best_bid_size": toStringFunc("bestbidsize"),
 	"data": map[string]any{
 		"properties": map[string]any{
-			"auth":          toStringFunc(model.CeKeySubject),
-			"depth":         toStringWithPrefixFunc(model.CeKeyElevation, "-"),
-			"flynn_region":  toStringFunc(model.CeKeyLocation),
-			"lat":           toStringFunc(model.CeKeyLatitude),
-			"lon":           toStringFunc(model.CeKeyLongitude),
-			"mag":           toStringFunc(model.CeKeyMagnitude),
-			"magtype":       toStringFunc(model.CeKeyMagnitudeType),
-			"sourcecatalog": toStringFunc(model.CeKeySourceCatalog),
-			"sourceid":      toStringFunc(model.CeKeySourceId),
-			"time":          toTimestampFunc(model.CeKeyTime),
-			"unid":          toStringWithPrefixFunc(model.CeKeyObjectUrl, seismicportalEuEventDetailsHtmlUnid),
+			"auth":          toStringFunc("subject"),
+			"depth":         toStringWithPrefixFunc("elevation", "-"),
+			"flynn_region":  convertEarthquakeLocationFunc("location"),
+			"lat":           toStringFunc("latitude"),
+			"lon":           toStringFunc("longitude"),
+			"mag":           convertEarthquakeMagnitudeFunc("magnitude"),
+			"magtype":       toStringFunc("magnitudetype"),
+			"sourcecatalog": toStringFunc("sourcecatalog"),
+			"sourceid":      toStringFunc("sourceid"),
+			"time":          toTimestampFunc("time"),
+			"unid":          toStringWithPrefixFunc("objecturl", seismicportalEuEventDetailsHtmlUnid),
 		},
 	},
+	"high_24h":   toStringFunc("high24h"),
+	"last_size":  toStringFunc("lastsize"),
+	"low_24h":    toStringFunc("low24h"),
+	"open_24h":   toStringFunc("open24h"),
+	"price":      convertPrice("offersprice"),
+	"product_id": convertTickerProductIdFunc("productid"),
+	"sequence":   toStringFunc("sequence"),
+	"side":       convertTickerSideFunc("side"),
+	"time":       toTimestampFunc("time"),
+	"trade_id":   toStringFunc("tradeid"),
+	"type":       convertTypeFunc("type"),
+	"volume_24h": toStringFunc("volume24h"),
+	"volume_30d": toStringFunc("volume30d"),
 }
 
 var ErrConversion = errors.New("conversion failure")
@@ -82,6 +100,102 @@ func convert(evt *pb.CloudEvent, node map[string]any, schema map[string]any) (er
 	return
 }
 
+func convertEarthquakeLocationFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var l string
+		l, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: l,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake location: %s\n", l)
+		}
+		return
+	}
+}
+
+func convertEarthquakeMagnitudeFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var m string
+		m, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: m,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake magnitude: %s\n", m)
+		}
+		return
+	}
+}
+
+func convertTickerProductIdFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var pid string
+		pid, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: pid,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Ticker product id: %s\n", pid)
+		}
+		return
+	}
+}
+
+func convertTickerSideFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var pid string
+		pid, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: pid,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Ticker side: %s\n", pid)
+		}
+		return
+	}
+}
+
+func convertPrice(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var p string
+		p, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: p,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Price: %s\n", p)
+		}
+		return
+	}
+}
+
+func convertTypeFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		switch vt := v.(type) {
+		case string:
+			if vt == typeTicker {
+				evt.Attributes[k] = &pb.CloudEventAttributeValue{
+					Attr: &pb.CloudEventAttributeValue_CeString{
+						CeString: typeTicker,
+					},
+				}
+			}
+		}
+		return
+	}
+}
+
 func toStringFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		var str string
@@ -111,8 +225,20 @@ func toString(k string, v any) (str string, err error) {
 		str = strconv.Itoa(int(vt))
 	case int64:
 		str = strconv.FormatInt(vt, 10)
-	case float32, float64:
-		str = fmt.Sprintf("%f", vt)
+	case float32:
+		switch float32(int(vt)) == vt {
+		case true:
+			str = strconv.Itoa(int(vt))
+		default:
+			str = fmt.Sprintf("%f", vt)
+		}
+	case float64:
+		switch float64(int(vt)) == vt {
+		case true:
+			str = strconv.Itoa(int(vt))
+		default:
+			str = fmt.Sprintf("%f", vt)
+		}
 	case string:
 		str = vt
 	default:
