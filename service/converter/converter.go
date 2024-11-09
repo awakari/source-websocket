@@ -7,8 +7,10 @@ import (
 	"github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,9 +23,6 @@ type svc struct {
 }
 
 type ConvertFunc func(evt *pb.CloudEvent, v any) (err error)
-
-const seismicportalEuEventDetailsHtmlUnid = "https://www.seismicportal.eu/eventdetails.html?unid="
-const typeTicker = "ticker"
 
 var convSchema = map[string]any{
 	"action":        toStringFunc("action"),
@@ -46,19 +45,37 @@ var convSchema = map[string]any{
 			"unid":          toStringWithPrefixFunc("objecturl", seismicportalEuEventDetailsHtmlUnid),
 		},
 	},
-	"high_24h":   toStringFunc("high24h"),
-	"last_size":  toStringFunc("lastsize"),
-	"low_24h":    toStringFunc("low24h"),
-	"open_24h":   toStringFunc("open24h"),
-	"price":      convertPrice("offersprice"),
+	"high_24h":   toInt32ElseStringFunc("high24h"),
+	"last_size":  toInt32ElseStringFunc("lastsize"),
+	"low_24h":    toInt32ElseStringFunc("low24h"),
+	"op":         convertOpFunc("action"),
+	"open_24h":   toInt32ElseStringFunc("open24h"),
+	"price":      convertPriceFunc("offersprice"),
 	"product_id": convertTickerProductIdFunc("productid"),
-	"sequence":   toStringFunc("sequence"),
+	"sequence":   toInt32ElseStringFunc("sequence"),
 	"side":       convertTickerSideFunc("side"),
 	"time":       toTimestampFunc("time"),
-	"trade_id":   toStringFunc("tradeid"),
+	"trade_id":   toInt32ElseStringFunc("tradeid"),
 	"type":       convertTypeFunc("type"),
-	"volume_24h": toStringFunc("volume24h"),
-	"volume_30d": toStringFunc("volume30d"),
+	"volume_24h": toInt32ElseStringFunc("volume24h"),
+	"volume_30d": toInt32ElseStringFunc("volume30d"),
+	"x": map[string]any{
+		"txIndexes":        toJoinedStringFunc("xtxindexes", " "),
+		"nTx":              toInt32ElseStringFunc("xntx"),
+		"totalBTCSent":     toInt32ElseStringFunc("xtotalbtcsent"),
+		"estimatedBTCSent": toInt32ElseStringFunc("xestimatedbtcsent"),
+		"reward":           toInt32ElseStringFunc("xreward"),
+		"size":             toInt32ElseStringFunc("xsize"),
+		"blockIndex":       toInt32ElseStringFunc("xblockindex"),
+		"prevBlockIndex":   toInt32ElseStringFunc("xprevblockindex"),
+		"height":           toInt32ElseStringFunc("xheight"),
+		"hash":             toStringFunc("xhash"),
+		"mrklRoot":         toStringFunc("xmrklroot"),
+		"version":          toInt32ElseStringFunc("xversion"),
+		"time":             toTimestampFunc("time"),
+		"bits":             toInt32ElseStringFunc("xbits"),
+		"nonce":            toInt32ElseStringFunc("nonce"),
+	},
 }
 
 var ErrConversion = errors.New("conversion failure")
@@ -100,97 +117,30 @@ func convert(evt *pb.CloudEvent, node map[string]any, schema map[string]any) (er
 	return
 }
 
-func convertEarthquakeLocationFunc(k string) ConvertFunc {
+func convertOpFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
-		var l string
-		l, err = toString(k, v)
-		if err == nil {
-			evt.Attributes[k] = &pb.CloudEventAttributeValue{
-				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: l,
-				},
-			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake location: %s\n", l)
+		switch v {
+		case "block":
+			convertBlockchainBlockCreate(evt)
 		}
 		return
 	}
 }
 
-func convertEarthquakeMagnitudeFunc(k string) ConvertFunc {
+func convertPriceFunc(k string) ConvertFunc {
+	attrSetFunc := toInt32ElseStringFunc(k)
 	return func(evt *pb.CloudEvent, v any) (err error) {
-		var m string
-		m, err = toString(k, v)
-		if err == nil {
-			evt.Attributes[k] = &pb.CloudEventAttributeValue{
-				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: m,
-				},
-			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake magnitude: %s\n", m)
-		}
-		return
-	}
-}
-
-func convertTickerProductIdFunc(k string) ConvertFunc {
-	return func(evt *pb.CloudEvent, v any) (err error) {
-		var pid string
-		pid, err = toString(k, v)
-		if err == nil {
-			evt.Attributes[k] = &pb.CloudEventAttributeValue{
-				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: pid,
-				},
-			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Ticker product id: %s\n", pid)
-		}
-		return
-	}
-}
-
-func convertTickerSideFunc(k string) ConvertFunc {
-	return func(evt *pb.CloudEvent, v any) (err error) {
-		var pid string
-		pid, err = toString(k, v)
-		if err == nil {
-			evt.Attributes[k] = &pb.CloudEventAttributeValue{
-				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: pid,
-				},
-			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Ticker side: %s\n", pid)
-		}
-		return
-	}
-}
-
-func convertPrice(k string) ConvertFunc {
-	return func(evt *pb.CloudEvent, v any) (err error) {
-		var p string
-		p, err = toString(k, v)
-		if err == nil {
-			evt.Attributes[k] = &pb.CloudEventAttributeValue{
-				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: p,
-				},
-			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Price: %s\n", p)
-		}
+		evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Price: %s\n", v)
+		err = attrSetFunc(evt, v)
 		return
 	}
 }
 
 func convertTypeFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
-		switch vt := v.(type) {
-		case string:
-			if vt == typeTicker {
-				evt.Attributes[k] = &pb.CloudEventAttributeValue{
-					Attr: &pb.CloudEventAttributeValue_CeString{
-						CeString: typeTicker,
-					},
-				}
-			}
+		switch v {
+		case typeTicker:
+			convertTickerType(evt, k)
 		}
 		return
 	}
@@ -198,12 +148,12 @@ func convertTypeFunc(k string) ConvertFunc {
 
 func toStringFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
-		var str string
-		str, err = toString(k, v)
+		var s string
+		s, err = toString(k, v)
 		if err == nil {
 			evt.Attributes[k] = &pb.CloudEventAttributeValue{
 				Attr: &pb.CloudEventAttributeValue_CeString{
-					CeString: str,
+					CeString: s,
 				},
 			}
 		}
@@ -264,11 +214,82 @@ func toStringWithPrefixFunc(k, prefix string) ConvertFunc {
 
 func toTimestampFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
-		str, strOk := v.(string)
-		switch strOk {
-		case true:
+		switch vt := v.(type) {
+		case int:
+			if vt > 1e15 {
+				// timestamp is unix micros
+				vt /= 1_000_000
+			}
+			if vt > 1e12 {
+				// timestamp is unix millis
+				vt /= 1_000
+			}
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
+					CeTimestamp: &timestamppb.Timestamp{
+						Seconds: int64(vt),
+					},
+				},
+			}
+		case int32:
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
+					CeTimestamp: &timestamppb.Timestamp{
+						Seconds: int64(vt),
+					},
+				},
+			}
+		case int64:
+			if vt > 1e15 {
+				// timestamp is unix micros
+				vt /= 1_000_000
+			}
+			if vt > 1e12 {
+				// timestamp is unix millis
+				vt /= 1_000
+			}
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
+					CeTimestamp: &timestamppb.Timestamp{
+						Seconds: vt,
+					},
+				},
+			}
+		case float32:
+			if vt > 1e15 {
+				// timestamp is unix micros
+				vt /= 1_000_000
+			}
+			if vt > 1e12 {
+				// timestamp is unix millis
+				vt /= 1_000
+			}
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
+					CeTimestamp: &timestamppb.Timestamp{
+						Seconds: int64(vt),
+					},
+				},
+			}
+		case float64:
+			if vt > 1e15 {
+				// timestamp is unix micros
+				vt /= 1_000_000
+			}
+			if vt > 1e12 {
+				// timestamp is unix millis
+				vt /= 1_000
+			}
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
+					CeTimestamp: &timestamppb.Timestamp{
+						Seconds: int64(vt),
+					},
+				},
+			}
+		case string:
 			var t time.Time
-			t, err = time.Parse(time.RFC3339, str)
+			t, err = time.Parse(time.RFC3339, vt)
 			evt.Attributes[k] = &pb.CloudEventAttributeValue{
 				Attr: &pb.CloudEventAttributeValue_CeTimestamp{
 					CeTimestamp: timestamppb.New(t),
@@ -279,4 +300,103 @@ func toTimestampFunc(k string) ConvertFunc {
 		}
 		return
 	}
+}
+
+func toJoinedStringFunc(k, sep string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		vSlice, vSliceOk := v.([]any)
+		switch vSliceOk {
+		case true:
+			var strs []string
+			var str string
+			for _, e := range vSlice {
+				str, err = toString(k, e)
+				if err != nil {
+					break
+				}
+				strs = append(strs, str)
+			}
+			if err == nil {
+				evt.Attributes[k] = &pb.CloudEventAttributeValue{
+					Attr: &pb.CloudEventAttributeValue_CeString{
+						CeString: strings.Join(strs, sep),
+					},
+				}
+			}
+		default:
+			err = fmt.Errorf("%w: key: %s, value %v, type: %s, expected a slice", ErrConversion, k, v, reflect.TypeOf(k))
+		}
+		return
+	}
+}
+
+func toInt32ElseStringFunc(k string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		i, ok := toInt32(v)
+		switch ok {
+		case true:
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeInteger{
+					CeInteger: i,
+				},
+			}
+		default:
+			var s string
+			s, err = toString(k, v)
+			if err == nil {
+				evt.Attributes[k] = &pb.CloudEventAttributeValue{
+					Attr: &pb.CloudEventAttributeValue_CeString{
+						CeString: s,
+					},
+				}
+			}
+		}
+		return
+	}
+}
+
+func toInt32(v any) (i int32, ok bool) {
+	switch vt := v.(type) {
+	case bool:
+		if vt {
+			i = 1
+		}
+		ok = true
+	case int:
+		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
+			i = int32(vt)
+			ok = true
+		}
+	case int8:
+		i = int32(vt)
+		ok = true
+	case int16:
+		i = int32(vt)
+		ok = true
+	case int32:
+		i = vt
+		ok = true
+	case int64:
+		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
+			i = int32(vt)
+			ok = true
+		}
+	case float32:
+		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
+			i = int32(vt)
+			ok = true
+		}
+	case float64:
+		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
+			i = int32(vt)
+			ok = true
+		}
+	case string:
+		i64, err := strconv.ParseInt(vt, 10, 32)
+		if err == nil && i64 >= math.MinInt32 && i64 <= math.MaxInt32 {
+			i = int32(i64)
+			ok = true
+		}
+	}
+	return
 }
