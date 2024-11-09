@@ -56,7 +56,6 @@ var convSchema = map[string]any{
 	"side":       convertTickerSideFunc("side"),
 	"time":       toTimestampFunc("time"),
 	"trade_id":   toInt32ElseStringFunc("tradeid"),
-	"type":       convertTypeFunc("type"),
 	"volume_24h": toInt32ElseStringFunc("volume24h"),
 	"volume_30d": toInt32ElseStringFunc("volume30d"),
 	"x": map[string]any{
@@ -132,16 +131,6 @@ func convertPriceFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Price: %s\n", v)
 		err = attrSetFunc(evt, v)
-		return
-	}
-}
-
-func convertTypeFunc(k string) ConvertFunc {
-	return func(evt *pb.CloudEvent, v any) (err error) {
-		switch v {
-		case typeTicker:
-			convertTickerType(evt, k)
-		}
 		return
 	}
 }
