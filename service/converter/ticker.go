@@ -20,7 +20,7 @@ func convertTickerProductIdFunc(k string) ConvertFunc {
 			case "":
 				txt = fmt.Sprintf("Ticker\nProduct id: %s\n", pid)
 			default:
-				txt = fmt.Sprintf("Product id: %s\n", pid) + txt
+				txt += fmt.Sprintf("Product id: %s\n", pid)
 			}
 			evt.Data.(*pb.CloudEvent_TextData).TextData = txt
 		}
@@ -43,7 +43,7 @@ func convertTickerSideFunc(k string) ConvertFunc {
 			case "":
 				txt = fmt.Sprintf("Ticker\nSide: %s\n", side)
 			default:
-				txt = fmt.Sprintf("Side: %s\n", side) + txt
+				txt += fmt.Sprintf("Side: %s\n", side)
 			}
 			evt.Data.(*pb.CloudEvent_TextData).TextData = txt
 		}

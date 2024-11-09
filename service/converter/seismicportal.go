@@ -17,7 +17,14 @@ func convertEarthquakeLocationFunc(k string) ConvertFunc {
 					CeString: l,
 				},
 			}
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake location: %s\n", l)
+			txt := evt.Data.(*pb.CloudEvent_TextData).TextData
+			switch txt {
+			case "":
+				txt = fmt.Sprintf("Earthquake\nLocation: %s\n", l)
+			default:
+				txt += fmt.Sprintf("Location: %s\n", l)
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData = txt
 		}
 		return
 	}
@@ -30,7 +37,14 @@ func convertEarthquakeMagnitudeFunc(k string) ConvertFunc {
 		m, err = toString(k, v)
 		if err == nil {
 			err = attrSetFunc(evt, v)
-			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Earthquake magnitude: %s\n", m)
+			txt := evt.Data.(*pb.CloudEvent_TextData).TextData
+			switch txt {
+			case "":
+				txt = fmt.Sprintf("Earthquake\nMagnitude: %s\n", m)
+			default:
+				txt += fmt.Sprintf("Magnitude: %s\n", m)
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData = txt
 		}
 		return
 	}

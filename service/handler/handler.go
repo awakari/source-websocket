@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/converter"
@@ -55,7 +56,7 @@ func (h *handler) Handle(ctx context.Context) {
 	}
 	for {
 		if err := backoff.Retry(f, b); err != nil {
-			panic(err)
+			panic(fmt.Sprintf("failed to handle the stream from %s, cause: %s", h.url, err))
 		}
 	}
 }
@@ -70,6 +71,7 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 			if err == nil {
 				err = wsjson.Write(ctx, h.conn, reqParsed)
 			}
+
 		}
 		if err == nil {
 			for {
