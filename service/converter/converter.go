@@ -373,12 +373,12 @@ func toInt32(v any) (i int32, ok bool) {
 	case float32:
 		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
 			i = int32(vt)
-			ok = true
+			ok = float32(i) == vt
 		}
 	case float64:
 		if vt >= math.MinInt32 && vt <= math.MaxInt32 {
 			i = int32(vt)
-			ok = true
+			ok = float64(i) == vt
 		}
 	case string:
 		i64, err := strconv.ParseInt(vt, 10, 32)
