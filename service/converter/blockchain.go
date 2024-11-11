@@ -22,4 +22,5 @@ func convertBlockchainBlockCreate(evt *pb.CloudEvent) {
 	default:
 		txt += "New blockchain block created\n" + txt
 	}
+	evt.Data.(*pb.CloudEvent_TextData).TextData = txt
 }
