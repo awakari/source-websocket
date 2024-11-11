@@ -31,7 +31,7 @@ func convertEarthquakeLocationFunc(k string) ConvertFunc {
 }
 
 func convertEarthquakeMagnitudeFunc(k string) ConvertFunc {
-	attrSetFunc := toInt32ElseStringFunc(k)
+	attrSetFunc := toAttrInt32ElseStringFunc(k)
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		var m string
 		m, err = toString(k, v)

@@ -1,6 +1,8 @@
 package converter
 
-import "github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
+import (
+	"github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
+)
 
 // for details see: https://www.blockchain.com/explorer/api/api_websocket
 
@@ -15,12 +17,5 @@ func convertBlockchainBlockCreate(evt *pb.CloudEvent) {
 			CeString: "block",
 		},
 	}
-	txt := evt.Data.(*pb.CloudEvent_TextData).TextData
-	switch txt {
-	case "":
-		txt = "New blockchain block created\n"
-	default:
-		txt += "New blockchain block created\n" + txt
-	}
-	evt.Data.(*pb.CloudEvent_TextData).TextData = txt
+	evt.Data.(*pb.CloudEvent_TextData).TextData = "New blockchain block created\n" + evt.Data.(*pb.CloudEvent_TextData).TextData
 }

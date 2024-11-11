@@ -25,55 +25,55 @@ type svc struct {
 type ConvertFunc func(evt *pb.CloudEvent, v any) (err error)
 
 var convSchema = map[string]any{
-	"action":        toStringFunc("action"),
-	"best_ask":      toStringFunc("bestbask"),
-	"best_ask_size": toStringFunc("bestasksize"),
-	"best_bid":      toStringFunc("bestbid"),
-	"best_bid_size": toStringFunc("bestbidsize"),
+	"action":        toAttrStringFunc("action"),
+	"best_ask":      toAttrStringFunc("bestbask"),
+	"best_ask_size": toAttrStringFunc("bestasksize"),
+	"best_bid":      toAttrStringFunc("bestbid"),
+	"best_bid_size": toAttrStringFunc("bestbidsize"),
 	"data": map[string]any{
 		"properties": map[string]any{
-			"auth":          toStringFunc("subject"),
-			"depth":         toStringWithPrefixFunc("elevation", "-"),
+			"auth":          toAttrStringFunc("subject"),
+			"depth":         toAttrStringWithPrefixFunc("elevation", "-"),
 			"flynn_region":  convertEarthquakeLocationFunc("location"),
-			"lat":           toStringFunc("latitude"),
-			"lon":           toStringFunc("longitude"),
+			"lat":           toAttrStringFunc("latitude"),
+			"lon":           toAttrStringFunc("longitude"),
 			"mag":           convertEarthquakeMagnitudeFunc("magnitude"),
-			"magtype":       toStringFunc("magnitudetype"),
-			"sourcecatalog": toStringFunc("sourcecatalog"),
-			"sourceid":      toStringFunc("sourceid"),
-			"time":          toTimestampFunc("time"),
-			"unid":          toStringWithPrefixFunc("objecturl", seismicportalEuEventDetailsHtmlUnid),
+			"magtype":       toAttrStringFunc("magnitudetype"),
+			"sourcecatalog": toAttrStringFunc("sourcecatalog"),
+			"sourceid":      toAttrStringFunc("sourceid"),
+			"time":          toAttrTimestampFunc("time"),
+			"unid":          toAttrStringWithPrefixFunc("objecturl", seismicportalEuEventDetailsHtmlUnid),
 		},
 	},
-	"high_24h":   toInt32ElseStringFunc("high24h"),
-	"last_size":  toInt32ElseStringFunc("lastsize"),
-	"low_24h":    toInt32ElseStringFunc("low24h"),
+	"high_24h":   toAttrInt32ElseStringFunc("high24h"),
+	"last_size":  toAttrInt32ElseStringFunc("lastsize"),
+	"low_24h":    toAttrInt32ElseStringFunc("low24h"),
 	"op":         convertOpFunc("action"),
-	"open_24h":   toInt32ElseStringFunc("open24h"),
+	"open_24h":   toAttrInt32ElseStringFunc("open24h"),
 	"price":      convertPriceFunc("offersprice"),
 	"product_id": convertTickerProductIdFunc("productid"),
-	"sequence":   toInt32ElseStringFunc("sequence"),
+	"sequence":   toAttrInt32ElseStringFunc("sequence"),
 	"side":       convertTickerSideFunc("side"),
-	"time":       toTimestampFunc("time"),
-	"trade_id":   toInt32ElseStringFunc("tradeid"),
-	"volume_24h": toInt32ElseStringFunc("volume24h"),
-	"volume_30d": toInt32ElseStringFunc("volume30d"),
+	"time":       toAttrTimestampFunc("time"),
+	"trade_id":   toAttrInt32ElseStringFunc("tradeid"),
+	"volume_24h": toAttrInt32ElseStringFunc("volume24h"),
+	"volume_30d": toAttrInt32ElseStringFunc("volume30d"),
 	"x": map[string]any{
-		"txIndexes":        toJoinedStringFunc("xtxindexes", " "),
-		"nTx":              toInt32ElseStringFunc("xntx"),
-		"totalBTCSent":     toInt32ElseStringFunc("xtotalbtcsent"),
-		"estimatedBTCSent": toInt32ElseStringFunc("xestimatedbtcsent"),
-		"reward":           toInt32ElseStringFunc("xreward"),
-		"size":             toInt32ElseStringFunc("xsize"),
-		"blockIndex":       toInt32ElseStringFunc("xblockindex"),
-		"prevBlockIndex":   toInt32ElseStringFunc("xprevblockindex"),
-		"height":           toInt32ElseStringFunc("xheight"),
-		"hash":             toStringFunc("xhash"),
-		"mrklRoot":         toStringFunc("xmrklroot"),
-		"version":          toInt32ElseStringFunc("xversion"),
-		"time":             toTimestampFunc("time"),
-		"bits":             toInt32ElseStringFunc("xbits"),
-		"nonce":            toInt32ElseStringFunc("nonce"),
+		"txIndexes":        toAttrStringJoinedFunc("xtxindexes", " "),
+		"nTx":              toAttrInt32ElseStringFunc("xntx"),
+		"totalBTCSent":     toAttrInt32ElseStringFunc("xtotalbtcsent"),
+		"estimatedBTCSent": toAttrInt32ElseStringFunc("xestimatedbtcsent"),
+		"reward":           toStringAttrAndAppendTextLabelFunc("xreward", "Reward"),
+		"size":             toAttrInt32ElseStringFunc("xsize"),
+		"blockIndex":       toStringAttrAndAppendTextLabelFunc("xblockindex", "Index"),
+		"prevBlockIndex":   toAttrInt32ElseStringFunc("xprevblockindex"),
+		"height":           toAttrInt32ElseStringFunc("xheight"),
+		"hash":             toStringAttrAndAppendTextLabelFunc("xhash", "Hash"),
+		"mrklRoot":         toAttrStringFunc("xmrklroot"),
+		"version":          toAttrInt32ElseStringFunc("xversion"),
+		"time":             toAttrTimestampFunc("time"),
+		"bits":             toAttrInt32ElseStringFunc("xbits"),
+		"nonce":            toAttrInt32ElseStringFunc("nonce"),
 	},
 }
 
@@ -127,7 +127,7 @@ func convertOpFunc(k string) ConvertFunc {
 }
 
 func convertPriceFunc(k string) ConvertFunc {
-	attrSetFunc := toInt32ElseStringFunc(k)
+	attrSetFunc := toAttrInt32ElseStringFunc(k)
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("Price: %s\n", v)
 		err = attrSetFunc(evt, v)
@@ -135,7 +135,7 @@ func convertPriceFunc(k string) ConvertFunc {
 	}
 }
 
-func toStringFunc(k string) ConvertFunc {
+func toAttrStringFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		var s string
 		s, err = toString(k, v)
@@ -186,7 +186,7 @@ func toString(k string, v any) (str string, err error) {
 	return
 }
 
-func toStringWithPrefixFunc(k, prefix string) ConvertFunc {
+func toAttrStringWithPrefixFunc(k, prefix string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		var str string
 		str, err = toString(k, v)
@@ -201,7 +201,7 @@ func toStringWithPrefixFunc(k, prefix string) ConvertFunc {
 	}
 }
 
-func toTimestampFunc(k string) ConvertFunc {
+func toAttrTimestampFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		switch vt := v.(type) {
 		case int:
@@ -291,7 +291,7 @@ func toTimestampFunc(k string) ConvertFunc {
 	}
 }
 
-func toJoinedStringFunc(k, sep string) ConvertFunc {
+func toAttrStringJoinedFunc(k, sep string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		vSlice, vSliceOk := v.([]any)
 		switch vSliceOk {
@@ -319,7 +319,7 @@ func toJoinedStringFunc(k, sep string) ConvertFunc {
 	}
 }
 
-func toInt32ElseStringFunc(k string) ConvertFunc {
+func toAttrInt32ElseStringFunc(k string) ConvertFunc {
 	return func(evt *pb.CloudEvent, v any) (err error) {
 		i, ok := toInt32(v)
 		switch ok {
@@ -388,4 +388,20 @@ func toInt32(v any) (i int32, ok bool) {
 		}
 	}
 	return
+}
+
+func toStringAttrAndAppendTextLabelFunc(k, lbl string) ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		var s string
+		s, err = toString(k, v)
+		if err == nil {
+			evt.Attributes[k] = &pb.CloudEventAttributeValue{
+				Attr: &pb.CloudEventAttributeValue_CeString{
+					CeString: s,
+				},
+			}
+			evt.Data.(*pb.CloudEvent_TextData).TextData += fmt.Sprintf("%s: %s\n", lbl, s)
+		}
+		return
+	}
 }
