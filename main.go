@@ -73,7 +73,7 @@ func main() {
 
 	handlersLock := &sync.Mutex{}
 	handlerByUrl := make(map[string]handler.Handler)
-	handlerFactory := handler.NewFactory(cfg.Api, conv, svcWriter)
+	handlerFactory := handler.NewFactory(cfg.Api, conv, svcWriter, log)
 
 	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
 	svc = service.NewServiceLogging(svc, log)

@@ -14,6 +14,8 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"io"
+	"log/slog"
+	"time"
 )
 
 type Handler interface {
@@ -27,13 +29,14 @@ type handler struct {
 	cfgApi config.ApiConfig
 	conv   converter.Service
 	w      writer.Service
+	log    *slog.Logger
 
 	conn *websocket.Conn
 }
 
 type Factory func(url string, str model.Stream) Handler
 
-func NewFactory(cfgApi config.ApiConfig, conv converter.Service, w writer.Service) Factory {
+func NewFactory(cfgApi config.ApiConfig, conv converter.Service, w writer.Service, log *slog.Logger) Factory {
 	return func(url string, str model.Stream) Handler {
 		return &handler{
 			url:    url,
@@ -41,6 +44,7 @@ func NewFactory(cfgApi config.ApiConfig, conv converter.Service, w writer.Servic
 			cfgApi: cfgApi,
 			conv:   conv,
 			w:      w,
+			log:    log,
 		}
 	}
 }
@@ -51,11 +55,14 @@ func (h *handler) Close() error {
 
 func (h *handler) Handle(ctx context.Context) {
 	b := backoff.NewExponentialBackOff()
-	f := func() error {
+	handleFunc := func() error {
 		return h.handleStream(ctx)
 	}
+	notifyErrFunc := func(err error, t time.Duration) {
+		h.log.Warn(fmt.Sprintf("failed to handle the stream from %s, cause: %s, retrying in %s", h.url, err, t))
+	}
 	for {
-		if err := backoff.Retry(f, b); err != nil {
+		if err := backoff.RetryNotify(handleFunc, b, notifyErrFunc); err != nil {
 			panic(fmt.Sprintf("failed to handle the stream from %s, cause: %s", h.url, err))
 		}
 	}
