@@ -24,6 +24,8 @@ type svc struct {
 
 type ConvertFunc func(evt *pb.CloudEvent, v any) (err error)
 
+const ksuidEnthropyLenMax = 16
+
 var convSchema = map[string]any{
 	"action":        toAttrStringFunc("action"),
 	"best_ask":      toAttrStringFunc("bestbask"),
@@ -86,8 +88,22 @@ func NewService(et string) Service {
 }
 
 func (s svc) Convert(src string, raw map[string]any) (evt *pb.CloudEvent, err error) {
+	enthropy := []byte(src)
+	switch {
+	case len(enthropy) < ksuidEnthropyLenMax:
+		for _ = range ksuidEnthropyLenMax - len(enthropy) {
+			enthropy = append(enthropy, 0)
+		}
+	case len(enthropy) > ksuidEnthropyLenMax:
+		enthropy = enthropy[:ksuidEnthropyLenMax]
+	}
+	var id ksuid.KSUID
+	id, err = ksuid.FromParts(time.Now(), enthropy)
+	if err != nil {
+		id = ksuid.New() // fallback
+	}
 	evt = &pb.CloudEvent{
-		Id:          ksuid.New().String(),
+		Id:          id.String(),
 		Source:      src,
 		SpecVersion: model.CeSpecVersion,
 		Type:        s.et,
