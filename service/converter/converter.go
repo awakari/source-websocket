@@ -88,20 +88,30 @@ func NewService(et string) Service {
 }
 
 func (s svc) Convert(src string, raw map[string]any) (evt *pb.CloudEvent, err error) {
-	enthropy := []byte(src)
+
+	entropy := []byte(src)
 	switch {
-	case len(enthropy) < ksuidEnthropyLenMax:
-		for _ = range ksuidEnthropyLenMax - len(enthropy) {
-			enthropy = append(enthropy, 0)
+	case len(entropy) < ksuidEnthropyLenMax:
+		for _ = range ksuidEnthropyLenMax - len(entropy) {
+			entropy = append(entropy, 0)
 		}
-	case len(enthropy) > ksuidEnthropyLenMax:
-		enthropy = enthropy[:ksuidEnthropyLenMax]
+	case len(entropy) > ksuidEnthropyLenMax:
+		entropy = entropy[:ksuidEnthropyLenMax]
 	}
+
+	t := time.Now().UTC()
+	tNanos := uint32(t.UnixNano() % int64(time.Second))
+	entropy[0] ^= byte(tNanos << 24) // most significant byte of tNanos
+	entropy[1] ^= byte(tNanos << 16)
+	entropy[2] ^= byte(tNanos << 8)
+	entropy[3] ^= byte(tNanos) // least significant byte of tNanos
+
 	var id ksuid.KSUID
-	id, err = ksuid.FromParts(time.Now(), enthropy)
+	id, err = ksuid.FromParts(t, entropy)
 	if err != nil {
 		id = ksuid.New() // fallback
 	}
+
 	evt = &pb.CloudEvent{
 		Id:          id.String(),
 		Source:      src,
@@ -110,6 +120,7 @@ func (s svc) Convert(src string, raw map[string]any) (evt *pb.CloudEvent, err er
 		Attributes:  make(map[string]*pb.CloudEventAttributeValue),
 		Data:        &pb.CloudEvent_TextData{},
 	}
+
 	err = convert(evt, raw, convSchema)
 	return
 }
