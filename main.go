@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/awakari/client-sdk-go/api"
 	apiGrpc "github.com/awakari/source-websocket/api/grpc"
+	"github.com/awakari/source-websocket/api/http/pub"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service"
 	"github.com/awakari/source-websocket/service/converter"
 	"github.com/awakari/source-websocket/service/handler"
-	"github.com/awakari/source-websocket/service/writer"
 	"github.com/awakari/source-websocket/storage/mongo"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -47,19 +47,9 @@ func main() {
 	}
 	log.Info(fmt.Sprintf("Replica: %d", replicaIndex))
 
-	var clientAwk api.Client
-	clientAwk, err = api.
-		NewClientBuilder().
-		WriterUri(cfg.Api.Writer.Uri).
-		Build()
-	if err != nil {
-		panic(fmt.Sprintf("failed to initialize the Awakari API client: %s", err))
-	}
-	defer clientAwk.Close()
-	log.Info("initialized the Awakari API client")
-
-	svcWriter := writer.NewService(clientAwk, cfg.Api.Writer.Backoff, cfg.Api.Writer.Cache, log)
-	svcWriter = writer.NewLogging(svcWriter, log)
+	svcPub := pub.NewService(http.DefaultClient, cfg.Api.Writer.Uri, cfg.Api.Token.Internal)
+	svcPub = pub.NewLogging(svcPub, log)
+	log.Info("initialized the Awakari publish API client")
 
 	ctx := context.Background()
 	stor, err := mongo.NewStorage(ctx, cfg.Db)
@@ -73,7 +63,7 @@ func main() {
 
 	handlersLock := &sync.Mutex{}
 	handlerByUrl := make(map[string]handler.Handler)
-	handlerFactory := handler.NewFactory(cfg.Api, conv, svcWriter, log)
+	handlerFactory := handler.NewFactory(cfg.Api, conv, svcPub, log)
 
 	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
 	svc = service.NewServiceLogging(svc, log)

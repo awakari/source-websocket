@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/awakari/source-websocket/api/http/pub"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/converter"
-	"github.com/awakari/source-websocket/service/writer"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
 	"github.com/coder/websocket"
@@ -28,7 +28,7 @@ type handler struct {
 	str    model.Stream
 	cfgApi config.ApiConfig
 	conv   converter.Service
-	w      writer.Service
+	svcPub pub.Service
 	log    *slog.Logger
 
 	conn *websocket.Conn
@@ -36,14 +36,14 @@ type handler struct {
 
 type Factory func(url string, str model.Stream) Handler
 
-func NewFactory(cfgApi config.ApiConfig, conv converter.Service, w writer.Service, log *slog.Logger) Factory {
+func NewFactory(cfgApi config.ApiConfig, conv converter.Service, svcPub pub.Service, log *slog.Logger) Factory {
 	return func(url string, str model.Stream) Handler {
 		return &handler{
 			url:    url,
 			str:    str,
 			cfgApi: cfgApi,
 			conv:   conv,
-			w:      w,
+			svcPub: svcPub,
 			log:    log,
 		}
 	}
@@ -100,7 +100,7 @@ func (h *handler) handleStreamEvent(ctx context.Context, url string) (err error)
 		evt, err = h.conv.Convert(url, raw)
 	}
 	if err == nil {
-		err = h.w.Write(ctx, evt, h.cfgApi.GroupId, url)
+		err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
 	}
 	return
 }
