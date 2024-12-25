@@ -47,7 +47,7 @@ func main() {
 	}
 	log.Info(fmt.Sprintf("Replica: %d", replicaIndex))
 
-	svcPub := pub.NewService(http.DefaultClient, cfg.Api.Writer.Uri, cfg.Api.Token.Internal)
+	svcPub := pub.NewService(http.DefaultClient, cfg.Api.Writer.Uri, cfg.Api.Token.Internal, cfg.Api.Writer.Timeout)
 	svcPub = pub.NewLogging(svcPub, log)
 	log.Info("initialized the Awakari publish API client")
 
