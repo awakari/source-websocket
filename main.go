@@ -67,9 +67,11 @@ func main() {
 
 	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
 	svc = service.NewServiceLogging(svc, log)
-	err = resumeHandlers(ctx, log, svc, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
-	if err != nil {
-		panic(err)
+	if replicaIndex > 0 {
+		err = resumeHandlers(ctx, log, svc, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	log.Info(fmt.Sprintf("starting to listen the gRPC API @ port #%d...", cfg.Api.Port))

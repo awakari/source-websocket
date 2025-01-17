@@ -8,11 +8,25 @@ metadata:
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: Deployment
+    kind: StatefulSet
     name: {{ include "source-websocket.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
+    - type: Object
+      object:
+        describedObject:
+          kind: Service
+          name: "{{ .Values.autoscaling.resolver.name }}"
+        metric:
+          name: "awk_work_queue_capacity"
+          selector:
+            matchLabels:
+              name: "{{ .Values.autoscaling.resolver.queue.name }}"
+              threshold: "{{ .Values.autoscaling.resolver.queue.capacity.threshold }}"
+        target:
+          type: Value
+          value: "{{ .Values.autoscaling.resolver.queue.capacity.target }}"
     {{- if .Values.autoscaling.targetCPUUtilizationValue }}
     - type: Resource
       resource:
