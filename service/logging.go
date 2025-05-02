@@ -21,9 +21,9 @@ func NewServiceLogging(svc Service, log *slog.Logger) Service {
 	}
 }
 
-func (l logging) Create(ctx context.Context, url, auth, groupId, userId string, at time.Time) (err error) {
-	err = l.svc.Create(ctx, url, auth, groupId, userId, at)
-	l.log.Log(context.TODO(), util.LogLevel(err), fmt.Sprintf("service.Create(%s, %s, %s, %s, %s): %s", url, auth, groupId, userId, at, err))
+func (l logging) Create(ctx context.Context, url, auth, format, groupId, userId string, at time.Time) (err error) {
+	err = l.svc.Create(ctx, url, auth, format, groupId, userId, at)
+	l.log.Log(context.TODO(), util.LogLevel(err), fmt.Sprintf("service.Create(%s, %s, %s, %s, %s, %s): %s", url, auth, format, groupId, userId, at, err))
 	return
 }
 

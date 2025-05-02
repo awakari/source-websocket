@@ -8,4 +8,5 @@ type Stream struct {
 	GroupId   string
 	UserId    string
 	Replica   uint32
+	Fmt       string
 }

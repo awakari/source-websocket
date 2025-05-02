@@ -27,7 +27,7 @@ func (c controller) Create(ctx context.Context, req *CreateRequest) (resp *Creat
 	case "":
 		err = status.Error(codes.InvalidArgument, "empty url")
 	default:
-		err = c.svc.Create(ctx, req.Url, req.Req, req.GroupId, req.UserId, time.Now().UTC())
+		err = c.svc.Create(ctx, req.Url, req.Req, req.Fmt, req.GroupId, req.UserId, time.Now().UTC())
 		err = translateError(err)
 	}
 	return
@@ -42,6 +42,7 @@ func (c controller) Read(ctx context.Context, req *ReadRequest) (resp *ReadRespo
 		resp.Req = str.Request
 		resp.GroupId = str.GroupId
 		resp.UserId = str.UserId
+		resp.Fmt = str.Fmt
 	}
 	err = translateError(err)
 	return

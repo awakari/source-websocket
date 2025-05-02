@@ -2,13 +2,13 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/awakari/source-websocket/api/http/pub"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/converter"
+	"github.com/bytedance/sonic"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
 	"github.com/coder/websocket"
@@ -35,6 +35,8 @@ type handler struct {
 }
 
 type Factory func(url string, str model.Stream) Handler
+
+const fmtFirehose = "firehose"
 
 func NewFactory(cfgApi config.ApiConfig, conv converter.Service, svcPub pub.Service, log *slog.Logger) Factory {
 	return func(url string, str model.Stream) Handler {
@@ -74,7 +76,7 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 		defer h.conn.CloseNow()
 		if h.str.Request != "" {
 			var reqParsed map[string]any
-			err = json.Unmarshal([]byte(h.str.Request), &reqParsed)
+			err = sonic.Unmarshal([]byte(h.str.Request), &reqParsed)
 			if err == nil {
 				err = wsjson.Write(ctx, h.conn, reqParsed)
 			}
@@ -94,12 +96,21 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 
 func (h *handler) handleStreamEvent(ctx context.Context, url string) (err error) {
 	var raw map[string]any
-	err = wsjson.Read(ctx, h.conn, &raw)
+	switch h.str.Fmt {
+	case fmtFirehose:
+		var data []byte
+		_, data, err = h.conn.Read(ctx)
+		if err == nil {
+			raw, err = firehoseDecodePost(data)
+		}
+	default:
+		err = wsjson.Read(ctx, h.conn, &raw)
+	}
 	var evt *pb.CloudEvent
-	if err == nil {
+	if err == nil && raw != nil {
 		evt, err = h.conv.Convert(url, raw)
 	}
-	if err == nil {
+	if err == nil && evt != nil {
 		err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
 	}
 	return

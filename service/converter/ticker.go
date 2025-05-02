@@ -50,3 +50,18 @@ func convertTickerSideFunc(k string) ConvertFunc {
 		return
 	}
 }
+
+func toTextDataFunc() ConvertFunc {
+	return func(evt *pb.CloudEvent, v any) (err error) {
+		vs, vsOk := v.(string)
+		switch vsOk {
+		case true:
+			evt.Data = &pb.CloudEvent_TextData{
+				TextData: vs,
+			}
+		default:
+			err = fmt.Errorf("invalid value type %T", v)
+		}
+		return
+	}
+}

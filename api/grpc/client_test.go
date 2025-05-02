@@ -88,6 +88,7 @@ func TestServiceClient_Read(t *testing.T) {
 		groupId   string
 		userId    string
 		createdAt *timestamppb.Timestamp
+		fmt       string
 		err       error
 	}{
 		"ok": {
@@ -97,6 +98,7 @@ func TestServiceClient_Read(t *testing.T) {
 			groupId:   "group0",
 			userId:    "user1",
 			createdAt: timestamppb.New(time.Date(2024, 11, 4, 14, 52, 0, 0, time.UTC)),
+			fmt:       "cbor",
 		},
 		"fail": {
 			req: &ReadRequest{
@@ -120,6 +122,7 @@ func TestServiceClient_Read(t *testing.T) {
 				assert.Equal(t, c.groupId, resp.GroupId)
 				assert.Equal(t, c.userId, resp.UserId)
 				assert.Equal(t, c.createdAt, resp.CreatedAt)
+				assert.Equal(t, c.fmt, resp.Fmt)
 			}
 		})
 	}

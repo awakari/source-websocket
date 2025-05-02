@@ -13,7 +13,7 @@ func NewServiceMock() Service {
 	return mock{}
 }
 
-func (m mock) Create(ctx context.Context, url, auth, groupId, userId string, at time.Time) (err error) {
+func (m mock) Create(ctx context.Context, url, auth, fmt, groupId, userId string, at time.Time) (err error) {
 	switch url {
 	case "fail":
 		err = ErrUnexpected
@@ -34,6 +34,7 @@ func (m mock) Read(ctx context.Context, url string) (str model.Stream, err error
 		str.UserId = "user1"
 		str.CreatedAt = time.Date(2024, 11, 4, 14, 52, 0, 0, time.UTC)
 		str.Replica = 1
+		str.Fmt = "cbor"
 	}
 	return
 }

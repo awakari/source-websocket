@@ -66,6 +66,7 @@ func TestStorageMongo_Create(t *testing.T) {
 		UserId:       "user3",
 		ReplicaIndex: 4,
 		CreatedAt:    time.Now().UTC(),
+		Fmt:          "cbor",
 	})
 	require.Nil(t, err)
 	//
@@ -133,6 +134,7 @@ func TestStorageMongo_Read(t *testing.T) {
 		UserId:       "user3",
 		ReplicaIndex: 4,
 		CreatedAt:    time.Date(2024, 11, 4, 18, 49, 25, 0, time.UTC),
+		Fmt:          "cbor",
 	})
 	require.Nil(t, err)
 	//
@@ -149,6 +151,7 @@ func TestStorageMongo_Read(t *testing.T) {
 				UserId:    "user3",
 				CreatedAt: time.Date(2024, 11, 4, 18, 49, 25, 0, time.UTC),
 				Replica:   4,
+				Fmt:       "cbor",
 			},
 		},
 		"missing": {

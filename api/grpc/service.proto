@@ -18,6 +18,7 @@ message CreateRequest {
   string req = 2; // initial request, typically a json payload to subscribe
   string groupId = 3;
   string userId = 4;
+  string fmt = 5;
 }
 
 message CreateResponse {}
@@ -31,6 +32,7 @@ message ReadResponse {
   string req = 2;
   string groupId = 3;
   string userId = 4;
+  string fmt = 5;
 }
 
 message DeleteRequest {
