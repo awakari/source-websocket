@@ -74,7 +74,7 @@ autoscaling:
       name: "resolver"
       capacity:
         threshold: "10000"
-        target: "7000" # means downscale when queue length > 3000 (10000 - 7000)
+        target: "9000" # means downscale when queue length > 1000 (10000 - 9000)
 
 priority:
   class: "awk-major"
