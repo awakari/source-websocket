@@ -51,7 +51,7 @@ func firehoseDecodePost(data []byte) (raw map[string]any, err error) {
 		var repo string
 		switch strings.HasPrefix(cm.Repo, prefixDid) {
 		case true:
-			repo = strings.TrimPrefix(cm.Repo, prefixDid)
+			repo = cm.Repo
 		default:
 			return
 		}
