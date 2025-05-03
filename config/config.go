@@ -30,8 +30,22 @@ type ApiConfig struct {
 }
 
 type EventsConfig struct {
+	Uri        string `envconfig:"API_EVENTS_URI" default:"events:50051" required:"true"`
+	Connection struct {
+		Count struct {
+			Init uint32 `envconfig:"API_EVENTS_CONN_COUNT_INIT" default:"1" required:"true"`
+			Max  uint32 `envconfig:"API_EVENTS_CONN_COUNT_MAX" default:"100" required:"true"`
+		}
+		IdleTimeout time.Duration `envconfig:"API_EVENTS_CONN_IDLE_TIMEOUT" default:"15m" required:"true"`
+	}
 	Source string `envconfig:"API_EVENTS_SOURCE" default:"https://awakari.com/pub.html?srcType=ws" required:"true"`
 	Type   string `envconfig:"API_EVENTS_TYPE" required:"true" default:"com_awakari_websocket_v1"`
+	Limit  uint32 `envconfig:"API_EVENTS_LIMIT" default:"1000" required:"true"`
+	Topics TopicsConfig
+}
+
+type TopicsConfig struct {
+	Bluesky string `envconfig:"API_EVENTS_TOPIC_BLUESKY" default:"source-websocket-bluesky" required:"true"`
 }
 
 type DbConfig struct {

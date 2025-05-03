@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/awakari/source-websocket/api/grpc/events"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/handler"
 	"github.com/awakari/source-websocket/storage"
@@ -14,7 +15,7 @@ import (
 
 func TestService_Create(t *testing.T) {
 	handlerByUrl := make(map[string]handler.Handler)
-	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, handlerByUrl, handler.NewMock)
+	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, handlerByUrl, handler.NewMock, events.NewPublisherMock())
 	s = NewServiceLogging(s, slog.Default())
 	cases := map[string]struct {
 		url          string
@@ -49,7 +50,7 @@ func TestService_Create(t *testing.T) {
 }
 
 func TestService_Read(t *testing.T) {
-	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock)
+	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock, events.NewPublisherMock())
 	s = NewServiceLogging(s, slog.Default())
 	cases := map[string]struct {
 		url string
@@ -83,7 +84,7 @@ func TestService_Read(t *testing.T) {
 }
 
 func TestService_Delete(t *testing.T) {
-	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock)
+	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock, events.NewPublisherMock())
 	s = NewServiceLogging(s, slog.Default())
 	cases := map[string]struct {
 		url     string
@@ -110,7 +111,7 @@ func TestService_Delete(t *testing.T) {
 }
 
 func TestService_List(t *testing.T) {
-	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock)
+	s := NewService(storage.NewMockStorage(), 1, &sync.Mutex{}, make(map[string]handler.Handler), handler.NewMock, events.NewPublisherMock())
 	s = NewServiceLogging(s, slog.Default())
 	cases := map[string]struct {
 		limit  uint32

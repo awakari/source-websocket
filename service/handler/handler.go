@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/awakari/source-websocket/api/grpc/events"
 	"github.com/awakari/source-websocket/api/http/pub"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
@@ -13,6 +14,7 @@ import (
 	"github.com/cloudevents/sdk-go/binding/format/protobuf/v2/pb"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/segmentio/ksuid"
 	"io"
 	"log/slog"
 	"time"
@@ -24,29 +26,31 @@ type Handler interface {
 }
 
 type handler struct {
-	url    string
-	str    model.Stream
-	cfgApi config.ApiConfig
-	conv   converter.Service
-	svcPub pub.Service
-	log    *slog.Logger
+	url      string
+	str      model.Stream
+	cfgApi   config.ApiConfig
+	conv     converter.Service
+	svcPub   pub.Service
+	log      *slog.Logger
+	wBluesky events.Writer
 
 	conn *websocket.Conn
 }
 
-type Factory func(url string, str model.Stream) Handler
+type Factory func(url string, str model.Stream, wBluesky events.Writer) Handler
 
-const fmtFirehose = "firehose"
+const fmtBluesky = "bluesky"
 
 func NewFactory(cfgApi config.ApiConfig, conv converter.Service, svcPub pub.Service, log *slog.Logger) Factory {
-	return func(url string, str model.Stream) Handler {
+	return func(url string, str model.Stream, wBluesky events.Writer) Handler {
 		return &handler{
-			url:    url,
-			str:    str,
-			cfgApi: cfgApi,
-			conv:   conv,
-			svcPub: svcPub,
-			log:    log,
+			url:      url,
+			str:      str,
+			cfgApi:   cfgApi,
+			conv:     conv,
+			svcPub:   svcPub,
+			log:      log,
+			wBluesky: wBluesky,
 		}
 	}
 }
@@ -95,23 +99,41 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 }
 
 func (h *handler) handleStreamEvent(ctx context.Context, url string) (err error) {
-	var raw map[string]any
 	switch h.str.Fmt {
-	case fmtFirehose:
+	case fmtBluesky:
 		var data []byte
 		_, data, err = h.conn.Read(ctx)
 		if err == nil {
-			raw, err = firehoseDecodePost(data)
+			evt := &pb.CloudEvent{
+				Id:          ksuid.New().String(),
+				Source:      url,
+				SpecVersion: model.CeSpecVersion,
+				Type:        h.cfgApi.Events.Type,
+				Data: &pb.CloudEvent_BinaryData{
+					BinaryData: data,
+				},
+			}
+			var ackCount uint32
+			ackCount, err = h.wBluesky.Write(ctx, []*pb.CloudEvent{
+				evt,
+			})
+			if err != nil {
+				panic("bluesky handler: failed to write event: " + err.Error())
+			}
+			if ackCount < 1 {
+				panic("bluesky handler: failed to acknowledge event")
+			}
 		}
 	default:
+		var raw map[string]any
 		err = wsjson.Read(ctx, h.conn, &raw)
-	}
-	var evt *pb.CloudEvent
-	if err == nil && raw != nil {
-		evt, err = h.conv.Convert(url, raw)
-	}
-	if err == nil && evt != nil {
-		err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
+		var evt *pb.CloudEvent
+		if err == nil && raw != nil {
+			evt, err = h.conv.Convert(url, raw)
+		}
+		if err == nil && evt != nil {
+			err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
+		}
 	}
 	return
 }

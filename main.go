@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	apiGrpc "github.com/awakari/source-websocket/api/grpc"
+	"github.com/awakari/source-websocket/api/grpc/events"
 	"github.com/awakari/source-websocket/api/http/pub"
 	"github.com/awakari/source-websocket/config"
 	"github.com/awakari/source-websocket/model"
@@ -11,6 +12,9 @@ import (
 	"github.com/awakari/source-websocket/service/converter"
 	"github.com/awakari/source-websocket/service/handler"
 	"github.com/awakari/source-websocket/storage/mongo"
+	grpcpool "github.com/processout/grpc-go-pool"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	"net/http"
 	"os"
@@ -65,10 +69,36 @@ func main() {
 	handlerByUrl := make(map[string]handler.Handler)
 	handlerFactory := handler.NewFactory(cfg.Api, conv, svcPub, log)
 
-	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
+	var wBluesky events.Writer
+	svc := service.NewService(stor, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory, wBluesky)
 	svc = service.NewServiceLogging(svc, log)
 	if replicaIndex > 0 {
-		err = resumeHandlers(ctx, log, svc, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory)
+		var connPoolEvts *grpcpool.Pool
+		connPoolEvts, err = grpcpool.New(
+			func() (*grpc.ClientConn, error) {
+				return grpc.NewClient(cfg.Api.Events.Uri, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			},
+			int(cfg.Api.Events.Connection.Count.Init),
+			int(cfg.Api.Events.Connection.Count.Max),
+			cfg.Api.Events.Connection.IdleTimeout,
+		)
+		if err != nil {
+			panic(err)
+		}
+		defer connPoolEvts.Close()
+		clientEvts := events.NewClientPool(connPoolEvts)
+		svcEvts := events.NewService(clientEvts)
+		svcEvts = events.NewLoggingMiddleware(svcEvts, log)
+		err = svcEvts.SetStream(context.TODO(), cfg.Api.Events.Topics.Bluesky, cfg.Api.Events.Limit)
+		if err != nil {
+			panic(err)
+		}
+		wBluesky, err = svcEvts.NewPublisher(ctx, cfg.Api.Events.Topics.Bluesky)
+		if err != nil {
+			panic(err)
+		}
+		defer wBluesky.Close()
+		err = resumeHandlers(ctx, log, svc, uint32(replicaIndex), handlersLock, handlerByUrl, handlerFactory, wBluesky)
 		if err != nil {
 			panic(err)
 		}
@@ -89,6 +119,7 @@ func resumeHandlers(
 	handlersLock *sync.Mutex,
 	handlerByUrl map[string]handler.Handler,
 	handlerFactory handler.Factory,
+	wBluesky events.Writer,
 ) (err error) {
 	var cursor string
 	var urls []string
@@ -103,7 +134,7 @@ func resumeHandlers(
 			for _, url := range urls {
 				str, err = svc.Read(ctx, url)
 				if err == nil && str.Replica == replicaIndex {
-					resumeHandler(ctx, log, url, str, handlersLock, handlerByUrl, handlerFactory)
+					resumeHandler(ctx, log, url, str, handlersLock, handlerByUrl, handlerFactory, wBluesky)
 				}
 				if err != nil {
 					break
@@ -125,10 +156,11 @@ func resumeHandler(
 	handlersLock *sync.Mutex,
 	handlerByUrl map[string]handler.Handler,
 	handlerFactory handler.Factory,
+	wBluesky events.Writer,
 ) {
 	handlersLock.Lock()
 	defer handlersLock.Unlock()
-	h := handlerFactory(url, str)
+	h := handlerFactory(url, str, wBluesky)
 	handlerByUrl[url] = h
 	go h.Handle(ctx)
 	log.Info(fmt.Sprintf("resumed handler for %s", url))

@@ -32,7 +32,6 @@ var convSchema = map[string]any{
 	"best_ask_size": toAttrStringFunc("bestasksize"),
 	"best_bid":      toAttrStringFunc("bestbid"),
 	"best_bid_size": toAttrStringFunc("bestbidsize"),
-	"createdAt":     toAttrTimestampFunc("time"), // bluesky
 	"data": map[string]any{
 		"properties": map[string]any{
 			"auth":          toAttrStringFunc("subject"),
@@ -48,7 +47,6 @@ var convSchema = map[string]any{
 			"unid":          toAttrStringWithPrefixFunc("objecturl", seismicportalEuEventDetailsHtmlUnid),
 		},
 	},
-	"did":        toAttrStringFunc("blueskydid"), // bluesky
 	"high_24h":   toAttrInt32ElseStringFunc("high24h"),
 	"last_size":  toAttrInt32ElseStringFunc("lastsize"),
 	"low_24h":    toAttrInt32ElseStringFunc("low24h"),
@@ -57,13 +55,11 @@ var convSchema = map[string]any{
 	"open_24h":   toAttrInt32ElseStringFunc("open24h"),
 	"price":      convertPriceFunc("offersprice"),
 	"product_id": convertTickerProductIdFunc("productid"),
-	"rev":        toAttrStringFunc("blueskyrev"),
 	"sequence":   toAttrInt32ElseStringFunc("sequence"),
 	"side":       convertTickerSideFunc("side"),
-	"text":       toTextDataFunc(),
+	"subject":    toAttrStringFunc("subject"),
 	"time":       toAttrTimestampFunc("time"),
 	"trade_id":   toAttrInt32ElseStringFunc("tradeid"),
-	"version":    toAttrInt32ElseStringFunc("blueskyversion"),
 	"volume_24h": toAttrInt32ElseStringFunc("volume24h"),
 	"volume_30d": toAttrInt32ElseStringFunc("volume30d"),
 	"x": map[string]any{

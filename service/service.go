@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/awakari/source-websocket/api/grpc/events"
 	"github.com/awakari/source-websocket/model"
 	"github.com/awakari/source-websocket/service/handler"
 	"github.com/awakari/source-websocket/storage"
@@ -24,6 +25,7 @@ type svc struct {
 	handlersLock   *sync.Mutex
 	handlerByUrl   map[string]handler.Handler
 	handlerFactory handler.Factory
+	wBluesky       events.Writer
 }
 
 var ErrNotFound = errors.New("not found")
@@ -36,6 +38,7 @@ func NewService(
 	handlersLock *sync.Mutex,
 	handlerByUrl map[string]handler.Handler,
 	handlerFactory handler.Factory,
+	wBluesky events.Writer,
 ) Service {
 	return svc{
 		stor:           stor,
@@ -43,6 +46,7 @@ func NewService(
 		handlersLock:   handlersLock,
 		handlerByUrl:   handlerByUrl,
 		handlerFactory: handlerFactory,
+		wBluesky:       wBluesky,
 	}
 }
 
@@ -59,7 +63,7 @@ func (s svc) Create(ctx context.Context, url, sub, fmt, groupId, userId string, 
 	if err == nil {
 		s.handlersLock.Lock()
 		defer s.handlersLock.Unlock()
-		h := s.handlerFactory(url, str)
+		h := s.handlerFactory(url, str, s.wBluesky)
 		s.handlerByUrl[url] = h
 		go h.Handle(context.Background())
 	}

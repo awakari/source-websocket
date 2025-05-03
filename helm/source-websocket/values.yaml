@@ -95,8 +95,17 @@ api:
   userAgent: "Awakari"
   groupId: "default"
   events:
+    conn:
+      count:
+        init: 1
+        max: 2
+      idleTimeout: "15m"
     source: "https://awakari.com/pub.html?srcType=ws"
     type: "com_awakari_websocket_v1"
+    uri: "events:50051"
+    limit: 1000
+    topic:
+      bluesky: "source-websocket-bluesky"
 db:
   # Database name to use.
   name: source
