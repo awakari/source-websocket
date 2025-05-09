@@ -15,8 +15,10 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/time/rate"
 	"io"
 	"log/slog"
+	"math"
 	"time"
 )
 
@@ -35,6 +37,7 @@ type handler struct {
 	wBluesky events.Writer
 
 	conn *websocket.Conn
+	rl   *rate.Limiter
 }
 
 type Factory func(url string, str model.Stream, wBluesky events.Writer) Handler
@@ -43,6 +46,13 @@ const fmtBluesky = "bluesky"
 
 func NewFactory(cfgApi config.ApiConfig, conv converter.Service, svcPub pub.Service, log *slog.Logger) Factory {
 	return func(url string, str model.Stream, wBluesky events.Writer) Handler {
+		var rl *rate.Limiter
+		switch str.RateLimit {
+		case nil:
+			rl = rate.NewLimiter(rate.Inf, math.MaxInt)
+		default:
+			rl = rate.NewLimiter(rate.Limit(*str.RateLimit), int(*str.RateLimit))
+		}
 		return &handler{
 			url:      url,
 			str:      str,
@@ -51,6 +61,7 @@ func NewFactory(cfgApi config.ApiConfig, conv converter.Service, svcPub pub.Serv
 			svcPub:   svcPub,
 			log:      log,
 			wBluesky: wBluesky,
+			rl:       rl,
 		}
 	}
 }
@@ -99,41 +110,46 @@ func (h *handler) handleStream(ctx context.Context) (err error) {
 }
 
 func (h *handler) handleStreamEvent(ctx context.Context, url string) (err error) {
-	switch h.str.Fmt {
-	case fmtBluesky:
-		var data []byte
-		_, data, err = h.conn.Read(ctx)
-		if err == nil {
-			evt := &pb.CloudEvent{
-				Id:          ksuid.New().String(),
-				Source:      url,
-				SpecVersion: model.CeSpecVersion,
-				Type:        h.cfgApi.Events.Type,
-				Data: &pb.CloudEvent_BinaryData{
-					BinaryData: data,
-				},
+	switch h.rl.Allow() {
+	case true:
+		switch h.str.Fmt {
+		case fmtBluesky:
+			var data []byte
+			_, data, err = h.conn.Read(ctx)
+			if err == nil {
+				evt := &pb.CloudEvent{
+					Id:          ksuid.New().String(),
+					Source:      url,
+					SpecVersion: model.CeSpecVersion,
+					Type:        h.cfgApi.Events.Type,
+					Data: &pb.CloudEvent_BinaryData{
+						BinaryData: data,
+					},
+				}
+				var ackCount uint32
+				ackCount, err = h.wBluesky.Write(ctx, []*pb.CloudEvent{
+					evt,
+				})
+				if err != nil {
+					panic("bluesky handler: failed to write event: " + err.Error())
+				}
+				if ackCount < 1 {
+					panic("bluesky handler: failed to acknowledge event")
+				}
 			}
-			var ackCount uint32
-			ackCount, err = h.wBluesky.Write(ctx, []*pb.CloudEvent{
-				evt,
-			})
-			if err != nil {
-				panic("bluesky handler: failed to write event: " + err.Error())
+		default:
+			var raw map[string]any
+			err = wsjson.Read(ctx, h.conn, &raw)
+			var evt *pb.CloudEvent
+			if err == nil && raw != nil {
+				evt, err = h.conv.Convert(url, raw)
 			}
-			if ackCount < 1 {
-				panic("bluesky handler: failed to acknowledge event")
+			if err == nil && evt != nil {
+				err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
 			}
 		}
 	default:
-		var raw map[string]any
-		err = wsjson.Read(ctx, h.conn, &raw)
-		var evt *pb.CloudEvent
-		if err == nil && raw != nil {
-			evt, err = h.conv.Convert(url, raw)
-		}
-		if err == nil && evt != nil {
-			err = h.svcPub.Publish(ctx, evt, h.cfgApi.GroupId, url)
-		}
+		time.Sleep(1 * time.Second)
 	}
 	return
 }

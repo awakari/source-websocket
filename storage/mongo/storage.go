@@ -28,6 +28,7 @@ type record struct {
 	CreatedAt    time.Time `bson:"createdAt"`
 	ReplicaIndex uint32    `bson:"ridx"`
 	Fmt          string    `bson:"fmt,omitempty"`
+	RateLimit    *float64  `bson:"rateLimit,omitempty"`
 }
 
 const attrUrl = "url"
@@ -37,6 +38,7 @@ const attrUserId = "uid"
 const attrReplicaIndex = "ridx"
 const attrCreatedAt = "createdAt"
 const attrFmt = "fmt"
+const attrRateLimit = "rateLimit"
 
 var optsSrvApi = options.ServerAPI(options.ServerAPIVersion1)
 var optsGet = options.
@@ -66,6 +68,10 @@ var projRead = bson.D{
 	},
 	{
 		Key:   attrFmt,
+		Value: 1,
+	},
+	{
+		Key:   attrRateLimit,
 		Value: 1,
 	},
 }
@@ -172,6 +178,7 @@ func (sm storageMongo) Read(ctx context.Context, url string) (str model.Stream, 
 		str.UserId = rec.UserId
 		str.Replica = rec.ReplicaIndex
 		str.Fmt = rec.Fmt
+		str.RateLimit = rec.RateLimit
 	}
 	err = decodeError(err, url)
 	return

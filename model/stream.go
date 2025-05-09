@@ -9,4 +9,5 @@ type Stream struct {
 	UserId    string
 	Replica   uint32
 	Fmt       string
+	RateLimit *float64
 }
