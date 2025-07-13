@@ -102,7 +102,7 @@ api:
       idleTimeout: "15m"
     source: "https://awakari.com/pub.html?srcType=ws"
     type: "com_awakari_websocket_v1"
-    uri: "events:50051"
+    uri: "events-backend.backend.svc.cluster.local:50066"
     limit: 1000
     topic:
       bluesky: "source-websocket-bluesky"
