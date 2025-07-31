@@ -16,8 +16,8 @@ spec:
     - type: Object
       object:
         describedObject:
-          kind: Service
-          name: "{{ .Values.autoscaling.resolver.name }}"
+          kind: Namespace
+          name: "{{ .Release.Namespace }}"
         metric:
           name: "awk_work_queue_capacity"
           selector:
