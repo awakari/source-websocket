@@ -12,6 +12,13 @@ spec:
     name: {{ include "source-websocket.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - periodSeconds: 20
+          type: Percent
+          value: 100
   metrics:
     - type: Object
       object:
