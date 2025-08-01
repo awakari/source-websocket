@@ -13,12 +13,10 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
     scaleDown:
-      stabilizationWindowSeconds: 60
-      policies:
-        - periodSeconds: 20
-          type: Percent
-          value: 100
+      stabilizationWindowSeconds: 30
   metrics:
     - type: Object
       object:
