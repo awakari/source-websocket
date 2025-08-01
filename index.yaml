@@ -3,12 +3,12 @@ entries:
   source-websocket:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-08-01T09:14:14.102113207Z"
+    created: "2025-08-01T09:19:23.446561259Z"
     description: A Helm chart for Awakari source-websocket
-    digest: 44007a1829e3f0fceea7c157be573089b228a680b4eaf1a5c298b8014a12a50e
+    digest: 7f1990e8b6db27f22d8347caf559a9912beaea4f2e41617b9f5e19c3f720cdb4
     name: source-websocket
     type: application
     urls:
     - source-websocket-0.0.0.tgz
     version: 0.0.0
-generated: "2025-08-01T09:14:14.101423265Z"
+generated: "2025-08-01T09:19:23.445865988Z"
